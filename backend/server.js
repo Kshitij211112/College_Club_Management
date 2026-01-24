@@ -20,6 +20,7 @@ mongoose
 app.use('/api/clubs', require('./routes/clubRoutes'));
 app.use('/api/events', require('./routes/eventRoutes'));
 app.use('/api/posts', require('./routes/postRoutes'));
+app.use('/api/userAuth',require("./routes/userAuthRoutes"));
 
 // Health Check Route
 app.get('/', (req, res) => {
@@ -49,7 +50,7 @@ app.use((req, res) => {
 });
 
 // Start Server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 6000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📍 http://localhost:${PORT}`);
