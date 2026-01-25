@@ -1,7 +1,12 @@
+// backend/server.js
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config();
+const dotenv = require('dotenv');
+
+// Load env vars
+dotenv.config();
 
 const app = express();
 
@@ -10,48 +15,42 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB Connection
+// Connect to MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => console.log("❌ MongoDB error:", err));
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch((err) => {
+    console.error('❌ MongoDB Connection Error:', err);
+    process.exit(1);
+  });
 
 // Routes
+app.use('/api/auth', require('./routes/userAuthRoutes'));
 app.use('/api/clubs', require('./routes/clubRoutes'));
 app.use('/api/events', require('./routes/eventRoutes'));
 app.use('/api/posts', require('./routes/postRoutes'));
-app.use('/api/userAuth',require("./routes/userAuthRoutes"));
 
-// Health Check Route
+// Health check route
 app.get('/', (req, res) => {
-  res.json({
-    message: '🎓 College Club Portal API',
-    version: '1.0.0',
-    status: 'Running'
-  });
+  res.json({ message: 'Club Portal API is running' });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'development' ? err.message : {}
+  res.status(500).json({ 
+    message: 'Something went wrong!', 
+    error: err.message 
   });
 });
 
-// 404 Handler
+// 404 handler
 app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
-  });
+  res.status(404).json({ message: 'Route not found' });
 });
 
-// Start Server
-const PORT = process.env.PORT || 6000;
+const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📍 http://localhost:${PORT}`);
 });

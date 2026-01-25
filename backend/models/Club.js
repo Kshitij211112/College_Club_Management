@@ -1,63 +1,43 @@
+// backend/models/Club.js
+
 const mongoose = require('mongoose');
 
-const clubSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'Club name is required'],
-    trim: true,
-    unique: true
+const clubSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, 'Please add a club name'],
+      unique: true,
+      trim: true,
+      maxlength: [100, 'Name cannot be more than 100 characters']
+    },
+    logo: {
+      type: String,
+      default: 'https://via.placeholder.com/400x300?text=Club+Logo'
+    },
+    image: {
+      type: String,
+      default: 'https://via.placeholder.com/400x300?text=Club+Image'
+    },
+    category: {
+      type: String,
+      enum: ['Technical', 'Cultural', 'Sports', 'Arts', 'Music', 'Drama', 'Other'],
+      default: 'Other'
+    },
+    members: {
+      type: Number,
+      required: [true, 'Please add number of members'],
+      min: [0, 'Members cannot be negative']
+    },
+    description: {
+      type: String,
+      required: [true, 'Please add a description'],
+      maxlength: [500, 'Description cannot be more than 500 characters']
+    }
   },
-  description: {
-    type: String,
-    required: [true, 'Description is required'],
-    trim: true
-  },
-  logo: {
-    type: String,
-    default: 'https://via.placeholder.com/400'
-  },
-  category: {
-    type: String,
-    enum: ['Technical', 'Cultural', 'Arts', 'Sports', 'Other'],
-    default: 'Other'
-  },
-  members: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
-  achievements: [{
-    type: String,
-    trim: true
-  }],
-  president: {
-    type: String,
-    trim: true
-  },
-  vicePresident: {
-    type: String,
-    trim: true
-  },
-  email: {
-    type: String,
-    trim: true,
-    lowercase: true
-  },
-  socialMedia: {
-    instagram: String,
-    linkedin: String,
-    twitter: String
-  },
-  founded: {
-    type: String,
-    default: new Date().getFullYear().toString()
-  },
-  isActive: {
-    type: Boolean,
-    default: true
+  {
+    timestamps: true // Adds createdAt and updatedAt automatically
   }
-}, {
-  timestamps: true
-});
+);
 
-module.exports = mongoose.models.Club || mongoose.model('Club', clubSchema);
+module.exports = mongoose.model('Club', clubSchema);
