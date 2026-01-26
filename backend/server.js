@@ -29,6 +29,8 @@ app.use('/api/auth', require('./routes/userAuthRoutes'));
 app.use('/api/clubs', require('./routes/clubRoutes'));
 app.use('/api/events', require('./routes/eventRoutes'));
 app.use('/api/posts', require('./routes/postRoutes'));
+app.use('/api/follow', require('./routes/followRoutes'));
+
 
 // Health check route
 app.get('/', (req, res) => {
@@ -49,7 +51,7 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 6000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
