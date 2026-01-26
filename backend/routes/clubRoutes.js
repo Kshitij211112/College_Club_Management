@@ -12,7 +12,7 @@ const {
 
 // @route   GET /api/clubs
 // @desc    Get all clubs
-router.get('/', getAllClubs);
+router.get('/getallclubs', getAllClubs);
 
 // @route   GET /api/clubs/:id
 // @desc    Get single club
@@ -20,7 +20,7 @@ router.get('/:id', getClubById);
 
 // @route   POST /api/clubs
 // @desc    Create new club
-router.post('/', createClub);
+router.post('/createclub', createClub);
 
 // @route   PUT /api/clubs/:id
 // @desc    Update club
