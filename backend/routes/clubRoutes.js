@@ -9,25 +9,30 @@ const {
   updateClub,
   deleteClub
 } = require('../controllers/clubController');
+const protect = require("../middleware/auth.middleware");
+const restrictTo = require("../middleware/role.middleware");
+
+
+
 
 // @route   GET /api/clubs
 // @desc    Get all clubs
-router.get('/getallclubs', getAllClubs);
+router.get('/getallclubs',protect, getAllClubs);
 
 // @route   GET /api/clubs/:id
 // @desc    Get single club
-router.get('/:id', getClubById);
+router.get('/:id',protect, getClubById);
 
 // @route   POST /api/clubs
 // @desc    Create new club
-router.post('/createclub', createClub);
+router.post('/createclub',restrictTo("admin", "club_leader"),protect, createClub);
 
 // @route   PUT /api/clubs/:id
 // @desc    Update club
-router.put('/:id', updateClub);
+router.put('/:id',restrictTo("admin", "club_leader"),protect, updateClub);
 
 // @route   DELETE /api/clubs/:id
 // @desc    Delete club
-router.delete('/:id', deleteClub);
+router.delete('/:id',restrictTo("admin", "club_leader"),protect, deleteClub);
 
 module.exports = router;

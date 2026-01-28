@@ -5,14 +5,14 @@ const jwt = require("jsonwebtoken");
 
 exports.UserRegister=async(req,res)=>{
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password ,role} = req.body;
 
         const existing = await User.findOne({ email });
         if (existing) return res.status(400).json({ message: "Email already exists" });
 
         const hash = await bcrypt.hash(password, 10);
 
-        const user = new User({ name, email, password: hash });
+        const user = new User({ name, email, password: hash,role:role||"student" });
         await user.save();
 
         res.json({ message: "User registered successfully" });
@@ -23,22 +23,30 @@ exports.UserRegister=async(req,res)=>{
 
 exports.UserLogin = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, role } = req.body;
 
         const user = await User.findOne({ email });
         if (!user) return res.status(400).json({ message: "User not found" });
 
+        // Check password
         const match = await bcrypt.compare(password, user.password);
         if (!match) return res.status(400).json({ message: "Incorrect password" });
 
-        // ✅ Use process.env.JWT_SECRET instead of hardcoded "SECRET123"
+        // 🚀 ROLE VALIDATION
+        if (role && role !== user.role) {
+            return res.status(403).json({
+                message: `You are not allowed to login as ${role}. Your registered role is ${user.role}.`
+            });
+        }
+
+        // Generate token
         const token = jwt.sign(
-            { id: user._id, role: user.role }, 
-            process.env.JWT_SECRET,  // 🔥 THIS IS THE FIX
+            { id: user._id, role: user.role },
+            process.env.JWT_SECRET,
             { expiresIn: "1d" }
         );
 
-        res.json({ 
+        res.json({
             message: "Login successful",
             token,
             user: {
