@@ -1,7 +1,7 @@
 const User = require("../models/User");
 const Club = require("../models/Club");
 
-exports.handleFollowClub = async (req, res) => {  // ✅ Changed "handel" to "handle"
+exports.handleFollowClub = async (req, res) => {  
   try {
     const userId = req.user.id;
     const clubId = req.params.clubId;
