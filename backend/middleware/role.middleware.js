@@ -1,4 +1,6 @@
-module.exports = (...allowedRoles) => {
+// backend/middleware/role.middleware.js
+
+const restrictTo = (...allowedRoles) => {
     return (req, res, next) => {
         if (!allowedRoles.includes(req.user.role)) {
             return res.status(403).json({ 
@@ -8,3 +10,6 @@ module.exports = (...allowedRoles) => {
         next();
     };
 };
+
+// ADD THIS LINE - Export the function directly
+module.exports = restrictTo;
