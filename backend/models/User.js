@@ -6,8 +6,14 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: {
     type: String,
-    enum: ["student", "admin", "club_leader"],
+    enum: ["student", "admin", "president"],
     default: "student",
+  },
+  
+  managedClub: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Club",
+    default: null,
   },
   followedClubs: [
     {

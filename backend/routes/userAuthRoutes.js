@@ -1,9 +1,21 @@
 const express = require("express");
 const router = express.Router();
 
-const {UserLogin,UserRegister}=require("../controllers/authController")
+// 1. Ensure getMe is included in the destructuring here!
+const { 
+    UserLogin, 
+    UserRegister, 
+    GoogleAuth,
+    getMe 
+} = require("../controllers/authController");
 
-router.post("/register",UserRegister);
-router.post("/login",UserLogin);
+const { protect } = require("../middleware/authMiddleware");
 
-module.exports=router;
+router.post("/register", UserRegister);
+router.post("/login", UserLogin);
+router.post("/google", GoogleAuth);
+
+// 2. This line will now work because getMe is defined
+router.get("/me", protect, getMe); 
+
+module.exports = router;

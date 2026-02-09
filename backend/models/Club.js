@@ -1,77 +1,33 @@
 const mongoose = require('mongoose');
 
-// TEAM SCHEMA (for club teams)
 const teamSchema = new mongoose.Schema({
-  name: { type: String, required: true }, // e.g. "Technical Team"
-
-  leader: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: false
-  },
-
-  members: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User"
-    }
-  ]
+  name: { type: String, required: true },
+  leader: { type: String }, // Changed to String for direct name input
+  members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]
 });
 
-// MAIN CLUB SCHEMA
-const clubSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: [true, 'Please add a club name'],
-      unique: true,
-      trim: true,
-      maxlength: [100, 'Name cannot be more than 100 characters']
-    },
-
-    logo: {
-      type: String,
-      default: 'https://via.placeholder.com/400x300?text=Club+Logo'
-    },
-
-    image: {
-      type: String,
-      default: 'https://via.placeholder.com/400x300?text=Club+Image'
-    },
-
-    category: {
-      type: String,
-      enum: ['Technical', 'Cultural', 'Sports', 'Arts', 'Music', 'Drama', 'Other'],
-      default: 'Other'
-    },
-
-    description: {
-      type: String,
-      required: [true, 'Please add a description'],
-      maxlength: [500, 'Description cannot be more than 500 characters']
-    },
-
-    // ⭐ Club President (can manage all teams)
-    president: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true
-    },
-
-    // ⭐ All Teams in the Club
-    teams: [teamSchema],
-
-    // ⭐ All Members of the Club
-    members: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-      }
-    ]
+const clubSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true, trim: true },
+  description: { type: String, required: true },
+  category: { type: String, enum: ['Technical', 'Cultural', 'Sports', 'Arts', 'Music', 'Drama', 'Other'], default: 'Other' },
+  
+  // Now stores the Name directly as a String
+  president: { 
+    type: String, 
+    required: true 
   },
-  {
-    timestamps: true
-  }
-);
+  vicePresident: { 
+    type: String, 
+    required: false,
+    default: "Not Assigned" 
+  },
+  
+  logo: { type: String, default: "https://via.placeholder.com/150" },
+  image: { type: String, default: "https://via.placeholder.com/400" },
+  teams: [teamSchema],
+  members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]
+}, { 
+  timestamps: true 
+});
 
 module.exports = mongoose.model('Club', clubSchema);

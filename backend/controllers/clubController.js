@@ -1,205 +1,150 @@
 const Club = require('../models/Club');
 
+// --- Helper: Standardize Club Output ---
+// Refactored to handle single objects or arrays more reliably
+const formatClubData = (data) => {
+    if (!data) return null;
+    const clubs = Array.isArray(data) ? data : [data];
+    
+    const formatted = clubs.map(club => {
+        const clubObj = club.toObject ? club.toObject() : club;
+        return {
+            ...clubObj,
+            presidentName: clubObj.president || "Not Assigned",
+            vpName: clubObj.vicePresident || "Not Assigned",
+            membersCount: clubObj.members?.length || 0,
+            // Ensure members is always an array of strings for easy frontend [includes] checks
+            members: clubObj.members ? clubObj.members.map(m => m.toString()) : []
+        };
+    });
+
+    return Array.isArray(data) ? formatted : formatted[0];
+};
+
+// 1. GET All Clubs
 exports.getAllClubs = async (req, res) => {
-  try {
-    const clubs = await Club.find()
-      .populate("president", "name email")
-      .select("name description category logo image president members")
-      .sort({ createdAt: -1 });
-
-    const formatted = clubs.map(club => ({
-      id: club._id,
-      name: club.name,
-      description: club.description,
-      category: club.category,
-      logo: club.logo,
-      image: club.image,
-      president: club.president?.name || "Unknown",
-      membersCount: club.members?.length || 0
-    }));
-
-    res.status(200).json(formatted);
-  } catch (error) {
-    console.error('Error fetching clubs:', error);
-    res.status(500).json({
-      message: "Failed to fetch clubs",
-      error: error.message
-    });
-  }
+    try {
+        const clubs = await Club.find().sort({ createdAt: -1 });
+        res.status(200).json(formatClubData(clubs));
+    } catch (error) {
+        res.status(500).json({ message: "Failed to fetch clubs", error: error.message });
+    }
 };
 
+// 2. GET My Joined Clubs
+exports.getMyClubs = async (req, res) => {
+    try {
+        // req.user.id comes from your auth middleware
+        const clubs = await Club.find({ members: req.user.id });
+        res.status(200).json(formatClubData(clubs));
+    } catch (error) {
+        res.status(500).json({ message: "Failed to load your clubs", error: error.message });
+    }
+};
+
+// 3. JOIN Club (Optimized)
+exports.joinClub = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const club = await Club.findById(req.params.id);
+
+        if (!club) return res.status(404).json({ message: "Club not found" });
+
+        // Check if already a member
+        const isAlreadyMember = club.members.some(m => m.toString() === userId);
+        
+        if (isAlreadyMember) {
+            // We return 200 instead of 400 if they are already in. 
+            // This prevents the console "error" if they click join on a club they are in.
+            return res.status(200).json({ message: "You're already a member! ✨" });
+        }
+
+        // Use findByIdAndUpdate with $addToSet to prevent race-condition duplicates
+        const updatedClub = await Club.findByIdAndUpdate(
+            req.params.id,
+            { $addToSet: { members: userId } },
+            { new: true }
+        );
+
+        res.status(200).json({ 
+            message: "Joined successfully! 🎉", 
+            club: formatClubData(updatedClub) 
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Join failed", error: error.message });
+    }
+};
+
+// 4. GET Club by ID
 exports.getClubById = async (req, res) => {
-  try {
-    const club = await Club.findById(req.params.id);
-    
-    if (!club) {
-      return res.status(404).json({ message: 'Club not found' });
+    try {
+        const club = await Club.findById(req.params.id);
+        if (!club) return res.status(404).json({ message: 'Club not found' });
+        
+        res.status(200).json(formatClubData(club));
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching club', error: error.message });
     }
-    
-    res.status(200).json(club);
-  } catch (error) {
-    console.error('Error fetching club:', error);
-    res.status(500).json({ 
-      message: 'Failed to fetch club', 
-      error: error.message 
-    });
-  }
 };
 
+// 5. CREATE Club
 exports.createClub = async (req, res) => {
-  try {
-    const { name, description, category, logo, image } = req.body;
+    try {
+        const { name, description, category, president, vicePresident } = req.body;
 
-    if (!name || !description) {
-      return res.status(400).json({
-        message: "Name and description are required"
-      });
+        if (!name) return res.status(400).json({ message: "Club name is required" });
+
+        const nameExists = await Club.findOne({ name: name.trim() });
+        if (nameExists) return res.status(400).json({ message: "A club with this name already exists" });
+
+        const newClub = new Club({
+            name: name.trim(),
+            description: description || "No description provided",
+            category: category || "General",
+            president: president || "Pending",
+            vicePresident: vicePresident || "Pending",
+            createdBy: req.user.id,
+            members: [req.user.id] 
+        });
+
+        const savedClub = await newClub.save();
+        res.status(201).json({ 
+            message: "Club created successfully!", 
+            club: formatClubData(savedClub) 
+        });
+        
+    } catch (error) {
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ message: "Validation Failed", errors: messages });
+        }
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
-
-    const exists = await Club.findOne({ name });
-    if (exists) {
-      return res.status(400).json({ message: "Club already exists" });
-    }
-
-    const presidentId = req.user.id;
-
-    const club = await Club.create({
-      name,
-      description,
-      category: category || "Other",
-      logo: logo || "https://via.placeholder.com/400x300?text=Club+Logo",
-      image: image || "https://via.placeholder.com/400x300?text=Club+Image",
-      president: presidentId,
-      members: [presidentId],
-      teams: []
-    });
-
-    res.status(201).json({
-      message: "Club created successfully",
-      club
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Failed to create club",
-      error: error.message
-    });
-  }
 };
 
+// 6. UPDATE Club
 exports.updateClub = async (req, res) => {
-  try {
-    const clubId = req.params.id;
-    const { name, description, category, logo, image } = req.body;
-
-    const club = await Club.findById(clubId);
-    if (!club) {
-      return res.status(404).json({ message: "Club not found" });
+    try {
+        const club = await Club.findByIdAndUpdate(
+            req.params.id, 
+            { $set: req.body }, 
+            { new: true, runValidators: true } 
+        );
+        
+        if (!club) return res.status(404).json({ message: "Club not found" });
+        res.status(200).json({ message: "Club updated", club: formatClubData(club) });
+    } catch (error) {
+        res.status(500).json({ message: "Update failed", error: error.message });
     }
-
-    if (club.president.toString() !== req.user.id) {
-      return res.status(403).json({
-        message: "Only the club president can update this club"
-      });
-    }
-
-    club.name = name || club.name;
-    club.description = description || club.description;
-    club.category = category || club.category;
-    club.logo = logo || club.logo;
-    club.image = image || club.image;
-
-    const updatedClub = await club.save();
-
-    res.status(200).json({
-      message: "Club updated successfully",
-      updatedClub
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Failed to update club",
-      error: error.message
-    });
-  }
 };
 
+// 7. DELETE Club
 exports.deleteClub = async (req, res) => {
-  try {
-    const clubId = req.params.id;
-
-    const club = await Club.findById(clubId);
-    if (!club) {
-      return res.status(404).json({ message: "Club not found" });
+    try {
+        const club = await Club.findByIdAndDelete(req.params.id);
+        if (!club) return res.status(404).json({ message: "Club not found" });
+        res.status(200).json({ message: "Club deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Delete failed", error: error.message });
     }
-
-    if (club.president.toString() !== req.user.id && req.user.role !== "admin") {
-      return res.status(403).json({
-        message: "Only the president or admin can delete this club"
-      });
-    }
-
-    await club.deleteOne();
-
-    res.status(200).json({
-      message: "Club deleted successfully",
-      clubId
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Failed to delete club",
-      error: error.message
-    });
-  }
 };
-
-exports.addFullTeam = async (req, res) => {
-  try {
-    const { clubId } = req.params;
-    const { name, leader, members } = req.body;
-
-    // Validations
-    if (!name) {
-      return res.status(400).json({ message: "Team name is required" });
-    }
-
-    if (!leader) {
-      return res.status(400).json({ message: "Team leader is required" });
-    }
-
-    const club = await Club.findById(clubId);
-
-    if (!club) {
-      return res.status(404).json({ message: "Club not found" });
-    }
-
-    // Check president authorization
-    if (club.president.toString() !== req.user.id) {
-      return res.status(403).json({
-        message: "Only the club president can create teams"
-      });
-    }
-
-    // Push new team
-    const newTeam = {
-      name,
-      leader,
-      members: members || []
-    };
-
-    club.teams.push(newTeam);
-
-    await club.save();
-
-    res.status(201).json({
-      message: "Team created successfully",
-      team: newTeam,
-      allTeams: club.teams
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      message: "Failed to create team",
-      error: error.message
-    });
-  }
-};
-
