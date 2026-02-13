@@ -5,130 +5,7 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const Club = require('../models/Club');
 const Event = require('../models/Event');
 const Post = require('../models/Post');
-
-// Sample Clubs Data
-const clubs = [
-  {
-    name: "Coding Club",
-    description: "Learn programming and participate in hackathons",
-    logo: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400",
-    category: "Technical",
-    members: 156,
-    achievements: [
-      "Won Inter-College Hackathon 2023",
-      "Organized 20+ technical workshops",
-      "500+ students trained"
-    ],
-    president: "John Doe",
-    vicePresident: "Jane Smith",
-    email: "codingclub@college.edu",
-    socialMedia: {
-      instagram: "@codingclub",
-      linkedin: "coding-club-college"
-    },
-    founded: "2018"
-  },
-  {
-    name: "Photography Club",
-    description: "Capture moments and enhance your photography skills",
-    logo: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=400",
-    category: "Arts",
-    members: 89,
-    achievements: [
-      "Annual Photography Exhibition 2023",
-      "50+ photo walks organized",
-      "Winner of State-level Photo Contest"
-    ],
-    president: "Sarah Johnson",
-    vicePresident: "Mike Chen",
-    email: "photoclub@college.edu",
-    socialMedia: {
-      instagram: "@collegephotoclub",
-      linkedin: "photography-club"
-    },
-    founded: "2019"
-  },
-  {
-    name: "Dance Club",
-    description: "Express yourself through various dance forms",
-    logo: "https://images.unsplash.com/photo-1508700929628-666bc8bd84ea?w=400",
-    category: "Cultural",
-    members: 124,
-    achievements: [
-      "1st Place in Inter-College Dance Fest 2023",
-      "Performed at 15+ college events",
-      "Choreographed 25+ performances"
-    ],
-    president: "Priya Sharma",
-    vicePresident: "Rahul Kumar",
-    email: "danceclub@college.edu",
-    socialMedia: {
-      instagram: "@collegedanceclub",
-      linkedin: "dance-club-college"
-    },
-    founded: "2017"
-  },
-  {
-    name: "Robotics Club",
-    description: "Build robots and explore automation, AI, and innovative engineering",
-    logo: "https://images.unsplash.com/photo-1563207153-f403bf289096?w=400",
-    category: "Technical",
-    members: 78,
-    achievements: [
-      "National Robotics Championship Finalists",
-      "Built 10+ functional robots",
-      "Published 3 research papers"
-    ],
-    president: "Alex Thompson",
-    vicePresident: "Emily Davis",
-    email: "robotics@college.edu",
-    socialMedia: {
-      instagram: "@roboticsclub",
-      linkedin: "robotics-club-college"
-    },
-    founded: "2020"
-  },
-  {
-    name: "Drama Club",
-    description: "Perform on stage and develop acting, directing, and theatrical skills",
-    logo: "https://images.unsplash.com/photo-1503095396549-807759245b35?w=400",
-    category: "Arts",
-    members: 92,
-    achievements: [
-      "Performed 12 successful plays",
-      "Best Drama Club Award 2023",
-      "Hosted State-level Theater Festival"
-    ],
-    president: "David Lee",
-    vicePresident: "Sophie Brown",
-    email: "dramaclub@college.edu",
-    socialMedia: {
-      instagram: "@dramaclub",
-      linkedin: "drama-club"
-    },
-    founded: "2016"
-  },
-  {
-    name: "Debate Society",
-    description: "Sharpen your argumentation and public speaking through competitive debates",
-    logo: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=400",
-    category: "Cultural",
-    members: 65,
-    achievements: [
-      "Won Inter-State Debate Competition",
-      "Organized 30+ debate sessions",
-      "Best Speaker Awards at multiple events"
-    ],
-    president: "Aisha Patel",
-    vicePresident: "James Wilson",
-    email: "debate@college.edu",
-    socialMedia: {
-      instagram: "@debatesociety",
-      linkedin: "debate-society"
-    },
-    founded: "2019"
-  }
-];
+const User = require('../models/User');
 
 // Seed Database
 const seedDatabase = async () => {
@@ -136,7 +13,7 @@ const seedDatabase = async () => {
     console.log('🔄 Starting database seed...');
     
     // Connect to MongoDB
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/club-portal';
+    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/club-portal';
     console.log('📡 Connecting to MongoDB...');
     
     await mongoose.connect(mongoUri, {
@@ -152,6 +29,86 @@ const seedDatabase = async () => {
     await Post.deleteMany();
     console.log('✅ Cleared existing data');
 
+    // Find or create seed users to act as presidents
+    const presidentNames = [
+      { name: "John Doe", email: "johndoe@college.edu" },
+      { name: "Sarah Johnson", email: "sarahjohnson@college.edu" },
+      { name: "Priya Sharma", email: "priyasharma@college.edu" },
+      { name: "Alex Thompson", email: "alexthompson@college.edu" },
+      { name: "David Lee", email: "davidlee@college.edu" },
+      { name: "Aisha Patel", email: "aishapatel@college.edu" }
+    ];
+
+    const presidentIds = [];
+    for (const p of presidentNames) {
+      let user = await User.findOne({ email: p.email });
+      if (!user) {
+        // Create a placeholder user if not found
+        user = await User.create({
+          name: p.name,
+          email: p.email,
+          password: 'SeedPassword123!', // placeholder
+          role: 'club_leader'
+        });
+        console.log(`  ✅ Created seed user: ${p.name}`);
+      } else {
+        console.log(`  ℹ️  Found existing user: ${p.name}`);
+      }
+      presidentIds.push(user._id);
+    }
+
+    // Sample Clubs Data (president is now an ObjectId)
+    const clubs = [
+      {
+        name: "Coding Club",
+        description: "Learn programming and participate in hackathons",
+        logo: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400",
+        category: "Technical",
+        president: presidentIds[0],
+        members: [presidentIds[0]]
+      },
+      {
+        name: "Photography Club",
+        description: "Capture moments and enhance your photography skills",
+        logo: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=400",
+        category: "Arts",
+        president: presidentIds[1],
+        members: [presidentIds[1]]
+      },
+      {
+        name: "Dance Club",
+        description: "Express yourself through various dance forms",
+        logo: "https://images.unsplash.com/photo-1508700929628-666bc8bd84ea?w=400",
+        category: "Cultural",
+        president: presidentIds[2],
+        members: [presidentIds[2]]
+      },
+      {
+        name: "Robotics Club",
+        description: "Build robots and explore automation, AI, and innovative engineering",
+        logo: "https://images.unsplash.com/photo-1563207153-f403bf289096?w=400",
+        category: "Technical",
+        president: presidentIds[3],
+        members: [presidentIds[3]]
+      },
+      {
+        name: "Drama Club",
+        description: "Perform on stage and develop acting, directing, and theatrical skills",
+        logo: "https://images.unsplash.com/photo-1503095396549-807759245b35?w=400",
+        category: "Arts",
+        president: presidentIds[4],
+        members: [presidentIds[4]]
+      },
+      {
+        name: "Debate Society",
+        description: "Sharpen your argumentation and public speaking through competitive debates",
+        logo: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=400",
+        category: "Cultural",
+        president: presidentIds[5],
+        members: [presidentIds[5]]
+      }
+    ];
+
     // Insert Clubs
     console.log('📝 Creating clubs...');
     const createdClubs = await Club.insertMany(clubs);
@@ -166,7 +123,7 @@ const seedDatabase = async () => {
         time: "9:00 AM - 6:00 PM",
         venue: "Auditorium Hall",
         clubId: createdClubs[0]._id,
-        image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=400",
+        poster: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=400",
         category: "Technical",
         registrations: 145
       },
@@ -177,7 +134,7 @@ const seedDatabase = async () => {
         time: "2:00 PM - 5:00 PM",
         venue: "Room 301",
         clubId: createdClubs[1]._id,
-        image: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=400",
+        poster: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=400",
         category: "Workshop",
         registrations: 67
       },
@@ -188,7 +145,7 @@ const seedDatabase = async () => {
         time: "6:00 PM - 8:00 PM",
         venue: "Main Auditorium",
         clubId: createdClubs[2]._id,
-        image: "https://images.unsplash.com/photo-1508700929628-666bc8bd84ea?w=400",
+        poster: "https://images.unsplash.com/photo-1508700929628-666bc8bd84ea?w=400",
         category: "Performance",
         registrations: 201
       },
@@ -199,7 +156,7 @@ const seedDatabase = async () => {
         time: "10:00 AM - 4:00 PM",
         venue: "Engineering Block",
         clubId: createdClubs[3]._id,
-        image: "https://images.unsplash.com/photo-1563207153-f403bf289096?w=400",
+        poster: "https://images.unsplash.com/photo-1563207153-f403bf289096?w=400",
         category: "Competition",
         registrations: 89
       },
@@ -210,7 +167,7 @@ const seedDatabase = async () => {
         time: "6:00 PM - 8:30 PM",
         venue: "Theatre Hall",
         clubId: createdClubs[4]._id,
-        image: "https://images.unsplash.com/photo-1503095396549-807759245b35?w=400",
+        poster: "https://images.unsplash.com/photo-1503095396549-807759245b35?w=400",
         category: "Performance",
         registrations: 201
       },
@@ -221,7 +178,7 @@ const seedDatabase = async () => {
         time: "1:00 PM - 5:00 PM",
         venue: "Conference Room",
         clubId: createdClubs[5]._id,
-        image: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=400",
+        poster: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=400",
         category: "Competition",
         registrations: 54
       }
@@ -289,6 +246,7 @@ const seedDatabase = async () => {
 
     console.log('\n🎉 Database seeded successfully!');
     console.log(`\n📊 Summary:`);
+    console.log(`   - ${presidentIds.length} seed users`);
     console.log(`   - ${createdClubs.length} clubs`);
     console.log(`   - ${createdEvents.length} events`);
     console.log(`   - ${createdPosts.length} posts`);

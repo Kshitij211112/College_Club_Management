@@ -1,26 +1,26 @@
 const express = require('express');
-const router = express.Router({ mergeParams: true }); 
+const router = express.Router({ mergeParams: true }); // mergeParams to access :clubId from parent
 const {
   getTeamsByClub,
   createTeam,
   addTeamMember,
   removeTeamMember,
-  updateMemberRole,
+  updateTeam,
   deleteTeam
-} = require('../controllers/teamController');
+} = require('../controllers/clubController');
 
+const { protect } = require('../middleware/authMiddleware');
 
-const { protect } = require('../middleware/authMiddleware'); 
-const { isPresident } = require('../middleware/clubAuth');
-
-// Public routes
+// Public - view teams
 router.get('/', getTeamsByClub);
 
-// Protected routes - President only
-router.post('/', protect, isPresident, createTeam);
-router.post('/:teamId/members', protect, isPresident, addTeamMember);
-router.put('/:teamId/members/:memberId', protect, isPresident, updateMemberRole);
-router.delete('/:teamId/members/:memberId', protect, isPresident, removeTeamMember);
-router.delete('/:teamId', protect, isPresident, deleteTeam);
+// Private - president manages teams (auth checked inside controller)
+router.post('/', protect, createTeam);
+router.put('/:teamId', protect, updateTeam);
+router.delete('/:teamId', protect, deleteTeam);
+
+// Private - president manages team members (auth checked inside controller)
+router.post('/:teamId/members', protect, addTeamMember);
+router.delete('/:teamId/members/:memberId', protect, removeTeamMember);
 
 module.exports = router;

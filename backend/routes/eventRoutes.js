@@ -5,19 +5,24 @@ const {
   getEventById,
   createEvent,
   updateEvent,
-  deleteEvent
+  deleteEvent,
+  registerForEvent,
+  cancelRegistration
 } = require('../controllers/eventController');
 
-const protect = require("../middleware/auth.middleware");
-const restrictTo = require("../middleware/role.middleware");
+const { protect } = require("../middleware/authMiddleware");
 
 // Public routes
-router.get('/',protect, getAllEvents);
-router.get('/:id',protect, getEventById);
+router.get('/', getAllEvents);
+router.get('/:id', getEventById);
 
-// Admin routes (add auth middleware later)
-router.post('/',protect,restrictTo("admin", "club_leader"), createEvent);
-router.put('/:id',protect,restrictTo("admin", "club_leader"),updateEvent);
-router.delete('/:id',protect,restrictTo("admin", "club_leader"), deleteEvent);
+// Private routes (auth checked inside controller for president/admin)
+router.post('/', protect, createEvent);
+router.put('/:id', protect, updateEvent);
+router.delete('/:id', protect, deleteEvent);
+
+// Registration routes
+router.post('/:id/register', protect, registerForEvent);
+router.delete('/:id/register', protect, cancelRegistration);
 
 module.exports = router;

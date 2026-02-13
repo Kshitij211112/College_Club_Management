@@ -12,7 +12,6 @@ const StudentDashboard = () => {
     useEffect(() => {
         const fetchMyClubs = async () => {
             try {
-                // This endpoint should return club objects including president and vicePresident strings
                 const res = await API.get('/clubs/my-clubs');
                 setMyClubs(res.data);
             } catch (err) {
@@ -81,11 +80,7 @@ const StudentDashboard = () => {
                                     <div className="space-y-1">
                                         <div className="flex justify-between items-center text-xs">
                                             <span className="text-slate-500 font-medium">President:</span>
-                                            <span className="text-slate-900 font-bold">{club.president}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-xs">
-                                            <span className="text-slate-500 font-medium">Vice Pres:</span>
-                                            <span className="text-slate-900 font-bold">{club.vicePresident || "Not Assigned"}</span>
+                                            <span className="text-slate-900 font-bold">{club.presidentName || club.president || 'Unknown'}</span>
                                         </div>
                                     </div>
                                 </div>

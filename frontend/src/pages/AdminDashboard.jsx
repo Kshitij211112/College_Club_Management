@@ -11,9 +11,7 @@ const AdminDashboard = () => {
     const [clubForm, setClubForm] = useState({ 
         name: '', 
         description: '', 
-        category: 'Technical', 
-        president: '', 
-        vicePresident: '' 
+        category: 'Technical'
     });
 
     const [eventForm, setEventForm] = useState({
@@ -56,7 +54,7 @@ const AdminDashboard = () => {
         try {
             await API.post('/clubs', clubForm);
             alert("🚀 Club successfully deployed!");
-            setClubForm({ name: '', description: '', category: 'Technical', president: '', vicePresident: '' });
+            setClubForm({ name: '', description: '', category: 'Technical' });
             loadClubs(); 
         } catch (err) { 
             alert(err.response?.data?.message || "Failed to create club."); 
@@ -139,7 +137,6 @@ const AdminDashboard = () => {
                                         <option value="Cultural">Cultural</option>
                                         <option value="Sports">Sports</option>
                                     </select>
-                                    <input className="w-full bg-slate-50 p-4 rounded-xl border-2 border-transparent focus:border-blue-600 outline-none" placeholder="President" value={clubForm.president} onChange={(e) => setClubForm({...clubForm, president: e.target.value})} required />
                                     <textarea className="w-full bg-slate-50 p-4 rounded-xl h-32 border-2 border-transparent focus:border-blue-600 outline-none" placeholder="Description" value={clubForm.description} onChange={(e) => setClubForm({...clubForm, description: e.target.value})} required />
                                     <button type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition-all">Create Club</button>
                                 </form>
@@ -178,7 +175,7 @@ const AdminDashboard = () => {
                                         clubs.map(club => (
                                             <tr key={club._id} className="hover:bg-slate-50/50">
                                                 <td className="px-8 py-6"><p className="font-bold">{club.name}</p><span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">{club.category}</span></td>
-                                                <td className="px-8 py-6"><p className="text-sm">{club.president}</p></td>
+                                                <td className="px-8 py-6"><p className="text-sm">{club.presidentName || 'You'}</p></td>
                                                 <td className="px-8 py-6 text-right">
                                                     <button onClick={() => handleDeleteClub(club._id)} className="text-red-600 bg-red-50 px-4 py-2 rounded-lg text-xs font-bold">Delete</button>
                                                 </td>
