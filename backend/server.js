@@ -38,6 +38,7 @@ app.use('/api/clubs/:clubId/teams', require('./routes/teamRoutes'));
 app.use('/api/events', require('./routes/eventRoutes'));
 app.use('/api/posts', require('./routes/postRoutes'));
 app.use('/api/follow', require('./routes/followRoutes'));
+app.use('/api/recruitment', require('./routes/recruitmentRoutes'));
 
 // 4. Health Check
 app.get('/', (req, res) => {

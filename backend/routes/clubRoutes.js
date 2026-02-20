@@ -7,7 +7,8 @@ const {
     getClubById,
     createClub,
     updateClub,
-    deleteClub
+    deleteClub,
+    changePresident
 } = require('../controllers/clubController');
 const { protect, isAdmin } = require("../middleware/authMiddleware");
 
@@ -24,6 +25,7 @@ router.post('/:id/join', protect, joinClub);
 // Admin Routes
 router.post('/', protect, isAdmin, createClub);
 router.put('/:id', protect, updateClub);
+router.put('/:id/change-president', protect, isAdmin, changePresident);
 router.delete('/:id', protect, deleteClub);
 
 module.exports = router;

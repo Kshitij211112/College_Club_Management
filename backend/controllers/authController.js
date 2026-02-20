@@ -141,3 +141,32 @@ exports.getUsers = async (req, res) => {
         res.status(500).json({ message: "Failed to fetch users" });
     }
 };
+
+// 6. CHANGE PASSWORD
+exports.changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: "Both current and new passwords are required" });
+        }
+        if (newPassword.length < 6) {
+            return res.status(400).json({ message: "New password must be at least 6 characters" });
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        const match = await bcrypt.compare(currentPassword, user.password);
+        if (!match) return res.status(400).json({ message: "Current password is incorrect" });
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        await user.save();
+
+        res.status(200).json({ message: "Password changed successfully" });
+    } catch (err) {
+        console.error("CHANGE_PASSWORD_ERROR:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+};

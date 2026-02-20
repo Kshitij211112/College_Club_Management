@@ -6,7 +6,8 @@ const {
     UserLogin, 
     UserRegister, 
     GoogleAuth,
-    getMe 
+    getMe,
+    changePassword
 } = require("../controllers/authController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -17,5 +18,6 @@ router.post("/google", GoogleAuth);
 
 // 2. This line will now work because getMe is defined
 router.get("/me", protect, getMe); 
+router.put("/change-password", protect, changePassword);
 
 module.exports = router;

@@ -3,18 +3,38 @@ import axios from 'axios';
 const API = axios.create({ baseURL: 'http://localhost:8000/api' });
 
 API.interceptors.request.use((req) => {
-    // 1. Try to get the token from 'profile' (standard for many MERN setups)
-    const profile = JSON.parse(localStorage.getItem('profile'));
-    
-    // 2. Fallback to 'token' or 'user' if profile doesn't exist
-    const token = profile?.token || localStorage.getItem('token');
-    
-    if (token) {
-        req.headers.Authorization = `Bearer ${token}`;
+    try {
+        // 1. Try to get the token from 'profile' (standard for many MERN setups)
+        const profile = JSON.parse(localStorage.getItem('profile'));
+        
+        // 2. Fallback to 'token' if profile doesn't exist
+        const token = profile?.token || localStorage.getItem('token');
+        
+        if (token) {
+            req.headers.Authorization = `Bearer ${token}`;
+        }
+    } catch (e) {
+        // If localStorage data is corrupted, clear it
+        console.error("Error reading auth token:", e);
+        localStorage.removeItem('profile');
+        localStorage.removeItem('token');
     }
     
     return req;
 });
+
+// Auto-handle expired/invalid tokens
+API.interceptors.response.use(
+    (res) => res,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('profile');
+            localStorage.removeItem('token');
+            window.location.href = '/auth';
+        }
+        return Promise.reject(error);
+    }
+);
 
 // --- Club Endpoints ---
 export const fetchClubs = () => API.get('/clubs');
