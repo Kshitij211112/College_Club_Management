@@ -58,6 +58,12 @@ const clubSchema = new mongoose.Schema(
       required: true
     },
 
+    // ⭐ Admin who created/approved this club
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    },
+
     // ⭐ All Teams in the Club
     teams: [teamSchema],
 

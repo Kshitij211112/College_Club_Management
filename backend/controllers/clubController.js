@@ -1,5 +1,7 @@
 const Club = require('../models/Club');
 const User = require('../models/User');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 // ─────────────────────────────────────────────
 // CLUB CRUD OPERATIONS
@@ -12,7 +14,8 @@ exports.getAllClubs = async (req, res) => {
   try {
     const clubs = await Club.find()
       .populate("president", "name email")
-      .select("name description category logo image president members teams")
+      .populate("createdBy", "name email")
+      .select("name description category logo image president createdBy members teams")
       .sort({ createdAt: -1 });
 
     const formatted = clubs.map(club => ({
@@ -24,6 +27,8 @@ exports.getAllClubs = async (req, res) => {
       image: club.image,
       president: club.president?._id || club.president,
       presidentName: club.president?.name || "Unknown",
+      presidentEmail: club.president?.email || "",
+      createdBy: club.createdBy?.name || "Admin",
       membersCount: club.members?.length || 0,
       members: club.members ? club.members.map(m => m.toString()) : [],
       teamsCount: club.teams?.length || 0
@@ -92,7 +97,7 @@ exports.getClubById = async (req, res) => {
       ...clubObj,
       presidentName: club.president?.name || "Unknown",
       membersCount: club.members?.length || 0,
-      members: club.members ? club.members.map(m => m._id?.toString() || m.toString()) : []
+      members: club.members || []
     });
   } catch (error) {
     console.error('Error fetching club:', error);
@@ -103,43 +108,103 @@ exports.getClubById = async (req, res) => {
   }
 };
 
-// @desc    Create a new club
+// @desc    Create a new club (Admin creates club + president account)
 // @route   POST /api/clubs
 // @access  Private (Admin only)
 exports.createClub = async (req, res) => {
   try {
-    const { name, description, category, logo, image } = req.body;
+    const { name, description, category, logo, image, presidentName, presidentEmail } = req.body;
 
+    // Validate required fields
     if (!name || !description) {
       return res.status(400).json({
         message: "Name and description are required"
       });
     }
+    if (!presidentName || !presidentEmail) {
+      return res.status(400).json({
+        message: "President name and email are required"
+      });
+    }
 
+    // Check if club name already exists
     const exists = await Club.findOne({ name: name.trim() });
     if (exists) {
       return res.status(400).json({ message: "A club with this name already exists" });
     }
 
-    // The creator (admin) becomes the president
-    const presidentId = req.user.id;
+    // Generate a random 8-character password for the president
+    const generatedPassword = crypto.randomBytes(4).toString('hex');
 
+    // Prevent admin from assigning themselves as president
+    const adminUser = await User.findById(req.user.id);
+    if (adminUser && adminUser.email === presidentEmail.trim().toLowerCase()) {
+      return res.status(400).json({
+        message: "You cannot assign yourself as the president. Please use a different email."
+      });
+    }
+
+    // Check if a user with this email already exists
+    let presidentUser = await User.findOne({ email: presidentEmail.trim().toLowerCase() });
+    let isExistingUser = false;
+
+    if (presidentUser) {
+      // Never overwrite an admin user
+      if (presidentUser.role === 'admin') {
+        return res.status(400).json({
+          message: "This email belongs to an admin account. Please use a different email for the president."
+        });
+      }
+      // If user exists but is already a president of another club, reject
+      if (presidentUser.role === 'president' && presidentUser.managedClub) {
+        return res.status(400).json({
+          message: "This user is already a president of another club"
+        });
+      }
+      // Update existing user to president role
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(generatedPassword, salt);
+      presidentUser.name = presidentName.trim();
+      presidentUser.password = hashedPassword;
+      presidentUser.role = 'president';
+      await presidentUser.save();
+      isExistingUser = true;
+    } else {
+      // Create new president user
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(generatedPassword, salt);
+      presidentUser = await User.create({
+        name: presidentName.trim(),
+        email: presidentEmail.trim().toLowerCase(),
+        password: hashedPassword,
+        role: 'president'
+      });
+    }
+
+    // Create the club
     const club = await Club.create({
       name: name.trim(),
       description,
       category: category || "Other",
       logo: logo || undefined,
       image: image || undefined,
-      president: presidentId,
-      members: [presidentId],
+      president: presidentUser._id,
+      createdBy: req.user.id,
+      members: [presidentUser._id],
       teams: []
     });
+
+    // Link the club to the president user
+    presidentUser.managedClub = club._id;
+    await presidentUser.save();
 
     // Populate president for response
     await club.populate("president", "name email");
 
     res.status(201).json({
       message: "Club created successfully!",
+      generatedPassword,
+      presidentEmail: presidentEmail.trim().toLowerCase(),
       club: {
         ...club.toObject(),
         presidentName: club.president?.name || "Unknown",
@@ -152,6 +217,7 @@ exports.createClub = async (req, res) => {
       const messages = Object.values(error.errors).map(val => val.message);
       return res.status(400).json({ message: "Validation Failed", errors: messages });
     }
+    console.error('Error creating club:', error);
     res.status(500).json({
       message: "Failed to create club",
       error: error.message
@@ -258,6 +324,89 @@ exports.updateClub = async (req, res) => {
       message: "Failed to update club",
       error: error.message
     });
+  }
+};
+
+// @desc    Change the president of a club (Admin only)
+// @route   PUT /api/clubs/:id/change-president
+// @access  Private (Admin only)
+exports.changePresident = async (req, res) => {
+  try {
+    const { presidentName, presidentEmail } = req.body;
+    const clubId = req.params.id;
+
+    if (!presidentName || !presidentEmail) {
+      return res.status(400).json({ message: "President name and email are required" });
+    }
+
+    const club = await Club.findById(clubId);
+    if (!club) return res.status(404).json({ message: "Club not found" });
+
+    // Prevent admin from assigning themselves
+    const adminUser = await User.findById(req.user.id);
+    if (adminUser && adminUser.email === presidentEmail.trim().toLowerCase()) {
+      return res.status(400).json({ message: "You cannot assign yourself as the president." });
+    }
+
+    // Check if new email belongs to an admin
+    let newPresident = await User.findOne({ email: presidentEmail.trim().toLowerCase() });
+    if (newPresident && newPresident.role === 'admin') {
+      return res.status(400).json({ message: "Cannot assign an admin as president." });
+    }
+
+    // Generate password for new president
+    const generatedPassword = crypto.randomBytes(4).toString('hex');
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(generatedPassword, salt);
+
+    if (newPresident) {
+      if (newPresident.role === 'president' && newPresident.managedClub && newPresident.managedClub.toString() !== clubId) {
+        return res.status(400).json({ message: "This user is already president of another club." });
+      }
+      newPresident.name = presidentName.trim();
+      newPresident.password = hashedPassword;
+      newPresident.role = 'president';
+      newPresident.managedClub = club._id;
+      await newPresident.save();
+    } else {
+      newPresident = await User.create({
+        name: presidentName.trim(),
+        email: presidentEmail.trim().toLowerCase(),
+        password: hashedPassword,
+        role: 'president',
+        managedClub: club._id
+      });
+    }
+
+    // Revert old president to student role
+    const oldPresident = await User.findById(club.president);
+    if (oldPresident && oldPresident._id.toString() !== newPresident._id.toString()) {
+      oldPresident.role = 'student';
+      oldPresident.managedClub = null;
+      await oldPresident.save();
+    }
+
+    // Update club
+    club.president = newPresident._id;
+    if (!club.members.some(m => m.toString() === newPresident._id.toString())) {
+      club.members.push(newPresident._id);
+    }
+    await club.save();
+    await club.populate("president", "name email");
+
+    res.status(200).json({
+      message: "President changed successfully!",
+      generatedPassword,
+      presidentEmail: presidentEmail.trim().toLowerCase(),
+      club: {
+        ...club.toObject(),
+        presidentName: club.president?.name || "Unknown",
+        membersCount: club.members.length
+      }
+    });
+  } catch (error) {
+    console.error('Error changing president:', error);
+    res.status(500).json({ message: "Failed to change president", error: error.message });
   }
 };
 

@@ -58,56 +58,7 @@ const seedDatabase = async () => {
     }
 
     // Sample Clubs Data (president is now an ObjectId)
-    const clubs = [
-      {
-        name: "Coding Club",
-        description: "Learn programming and participate in hackathons",
-        logo: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400",
-        category: "Technical",
-        president: presidentIds[0],
-        members: [presidentIds[0]]
-      },
-      {
-        name: "Photography Club",
-        description: "Capture moments and enhance your photography skills",
-        logo: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=400",
-        category: "Arts",
-        president: presidentIds[1],
-        members: [presidentIds[1]]
-      },
-      {
-        name: "Dance Club",
-        description: "Express yourself through various dance forms",
-        logo: "https://images.unsplash.com/photo-1508700929628-666bc8bd84ea?w=400",
-        category: "Cultural",
-        president: presidentIds[2],
-        members: [presidentIds[2]]
-      },
-      {
-        name: "Robotics Club",
-        description: "Build robots and explore automation, AI, and innovative engineering",
-        logo: "https://images.unsplash.com/photo-1563207153-f403bf289096?w=400",
-        category: "Technical",
-        president: presidentIds[3],
-        members: [presidentIds[3]]
-      },
-      {
-        name: "Drama Club",
-        description: "Perform on stage and develop acting, directing, and theatrical skills",
-        logo: "https://images.unsplash.com/photo-1503095396549-807759245b35?w=400",
-        category: "Arts",
-        president: presidentIds[4],
-        members: [presidentIds[4]]
-      },
-      {
-        name: "Debate Society",
-        description: "Sharpen your argumentation and public speaking through competitive debates",
-        logo: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=400",
-        category: "Cultural",
-        president: presidentIds[5],
-        members: [presidentIds[5]]
-      }
-    ];
+ 
 
     // Insert Clubs
     console.log('📝 Creating clubs...');

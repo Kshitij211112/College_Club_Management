@@ -1,9 +1,12 @@
 /* 1. Variables & Themes */
 :root {
-  --bg-color: #131111;    /* Deep Navy Background */
-  --card-bg: #212422;     /* Distinct Lighter Slate for Cards */
+  --bg-color: #131111;
+  /* Deep Navy Background */
+  --card-bg: #212422;
+  /* Distinct Lighter Slate for Cards */
   --text-color: #ffffff;
-  --card-border: #10161e; /* Subtle border for definition */
+  --card-border: #10161e;
+  /* Subtle border for definition */
 }
 
 [data-theme='light'] {
@@ -23,7 +26,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.3s ease, color 0.3s ease; /* Specific transitions are smoother */
+  transition: background-color 0.3s ease, color 0.3s ease;
+  /* Specific transitions are smoother */
 }
 
 code {

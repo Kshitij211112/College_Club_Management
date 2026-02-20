@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import API, { fetchClubs } from '../api';
+import * as clubService from '../../services/clubService';
+import * as eventService from '../../services/eventService';
+import { copyToClipboard } from '../../utils/helpers';
 import {
     PasswordModal,
     CreateClubModal,
     ClubDetailModal,
     AdminClubCard,
     EventsSection
-} from '../components/admin';
+} from '../../components/admin';
 
 const AdminDashboard = () => {
     const [view, setView] = useState('clubs');
@@ -28,14 +30,14 @@ const AdminDashboard = () => {
 
     const loadClubs = async () => {
         try {
-            const res = await fetchClubs();
+            const res = await clubService.getAll();
             setClubs(Array.isArray(res.data) ? res.data : []);
         } catch (err) { console.error("Fetch Clubs Error:", err.message); }
     };
 
     const loadEvents = async () => {
         try {
-            const res = await API.get('/events');
+            const res = await eventService.getAll();
             const data = res.data.data || res.data || [];
             setEvents(Array.isArray(data) ? data : []);
         } catch (err) { console.error("Fetch Events Error:", err.message); }
@@ -45,7 +47,7 @@ const AdminDashboard = () => {
     const handleCreateClub = async (form, resetForm) => {
         setCreateLoading(true);
         try {
-            const res = await API.post('/clubs', {
+            const res = await clubService.create({
                 name: form.name, description: form.description,
                 category: form.category, presidentName: form.presidentName,
                 presidentEmail: form.presidentEmail,
@@ -69,7 +71,7 @@ const AdminDashboard = () => {
         setShowClubDetail(true);
         setClubDetail(null);
         try {
-            const res = await API.get(`/clubs/${club._id}`);
+            const res = await clubService.getById(club._id);
             setClubDetail(res.data);
         } catch (err) {
             alert("Failed to load club details.");
@@ -80,7 +82,7 @@ const AdminDashboard = () => {
     const handleDeleteClub = async (id) => {
         if (!window.confirm("⚠️ Are you sure you want to delete this club? This cannot be undone.")) return;
         try {
-            await API.delete(`/clubs/${id}`);
+            await clubService.remove(id);
             setShowClubDetail(false);
             setClubDetail(null);
             loadClubs();
@@ -89,7 +91,7 @@ const AdminDashboard = () => {
 
     const handleChangePresident = async (presidentForm) => {
         if (!clubDetail) return;
-        const res = await API.put(`/clubs/${clubDetail._id}/change-president`, presidentForm);
+        const res = await clubService.changePresident(clubDetail._id, presidentForm);
         setCreatedCredentials({
             clubName: clubDetail.name,
             presidentEmail: res.data.presidentEmail,
@@ -98,11 +100,6 @@ const AdminDashboard = () => {
         setShowClubDetail(false);
         setShowPasswordModal(true);
         loadClubs();
-    };
-
-    const copyToClipboard = (text) => {
-        navigator.clipboard.writeText(text);
-        alert("✅ Copied to clipboard!");
     };
 
     // ─── Render ─────────────────────────────────
